@@ -1,0 +1,10 @@
+﻿node_modules/
+build/
+.cache/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+react-shopping-cart/node_modules/
+react-shopping-cart/build/
+react-shopping-cart/.firebase/
+react-shopping-cart/.circleci/

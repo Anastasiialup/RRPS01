@@ -1,0 +1,56 @@
+@startuml component_diagram
+skinparam componentStyle uml2
+skinparam backgroundColor #FFFFFF
+skinparam roundcorner 10
+
+title UML Component Diagram - react-shopping-cart
+
+package "Browser Client (User Interface)" {
+  [App UI Shell] as AppComp
+  [Product Catalog Component] as ProductsComp
+  [Size Filter Component] as FilterComp
+  [Shopping Cart Component] as CartComp
+  [Header & Social Components] as ExtrasComp
+}
+
+package "State Management & Business Logic Layer" {
+  [Products Context & Hook\n(useProducts, ProductsProvider)] as ProductsState
+  [Cart Context & Hooks\n(useCart, useCartProducts, useCartTotal)] as CartState
+}
+
+package "Domain Layer" {
+  [Product Models & Interfaces\n(IProduct, ICartProduct, ICartTotal)] as Models
+}
+
+package "Service & Data Access Layer" {
+  [Products Service\n(products.ts)] as ProdService
+  [HTTP Client\n(Axios)] as AxiosComp
+  [Local Static JSON\n(products.json)] as StaticData
+}
+
+cloud "Remote Backend" {
+  [Firebase Realtime Database\n(REST API)] as Firebase
+}
+
+' Зв'язки між компонентами UI та станом
+AppComp --> ProductsComp
+AppComp --> FilterComp
+AppComp --> CartComp
+AppComp --> ExtrasComp
+
+AppComp ..> ProductsState : "ініціалізує fetch"
+ProductsComp ..> CartState : "додає товар у кошик"
+FilterComp ..> ProductsState : "фільтрує за розмірами"
+CartComp ..> CartState : "читає стан і змінює кількість"
+
+' Зв'язки бізнес-логіки з моделями та сервісами
+ProductsState ..> Models : "типізація"
+CartState ..> Models : "типізація"
+ProductsState ..> ProdService : "запитує каталог"
+
+' Зв'язки сервісу з джерелами даних
+ProdService --> AxiosComp : "production (env)"
+ProdService --> StaticData : "development / fallback"
+AxiosComp --> Firebase : "GET /products.json (HTTPS)"
+
+@enduml

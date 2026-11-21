@@ -1,0 +1,192 @@
+@startuml class_diagram
+skinparam classAttributeIconSize 0
+skinparam backgroundColor #FFFFFF
+skinparam roundcorner 10
+skinparam monochrome false
+skinparam handwritten false
+
+title UML Class & Interface Diagram - react-shopping-cart (Reverse Engineered)
+
+package "Models (Domain Layer)" <<Folder>> {
+  interface IProduct {
+    + id: number
+    + sku: number
+    + title: string
+    + description: string
+    + availableSizes: string[]
+    + style: string
+    + price: number
+    + installments: number
+    + currencyId: string
+    + currencyFormat: string
+    + isFreeShipping: boolean
+  }
+
+  interface ICartProduct {
+    + quantity: number
+  }
+
+  interface ICartTotal {
+    + productQuantity: number
+    + installments: number
+    + totalPrice: number
+    + currencyId: string
+    + currencyFormat: string
+  }
+
+  interface IGetProductsResponse {
+    + data: { products: IProduct[] }
+  }
+
+  ICartProduct --|> IProduct : extends (наслідування)
+}
+
+package "State Management & Contexts" <<Folder>> {
+  interface ICartContext {
+    + isOpen: boolean
+    + products: ICartProduct[]
+    + total: ICartTotal
+    + setIsOpen(state: boolean): void
+    + setProducts(products: ICartProduct[]): void
+    + setTotal(total: any): void
+  }
+
+  interface IProductsContext {
+    + isFetching: boolean
+    + products: IProduct[]
+    + filters: string[]
+    + setIsFetching(state: boolean): void
+    + setProducts(products: IProduct[]): void
+    + setFilters(filters: string[]): void
+  }
+
+  class CartProvider <<Context Provider>> {
+    - isOpen: boolean
+    - products: ICartProduct[]
+    - total: ICartTotal
+    + render(): JSX.Element
+  }
+
+  class ProductsProvider <<Context Provider>> {
+    - isFetching: boolean
+    - products: IProduct[]
+    - filters: string[]
+    + render(): JSX.Element
+  }
+
+  class useCart <<Custom Hook>> {
+    + isOpen: boolean
+    + products: ICartProduct[]
+    + total: ICartTotal
+    + openCart(): void
+    + closeCart(): void
+    + addProduct(product: ICartProduct): void
+    + removeProduct(product: ICartProduct): void
+    + increaseProductQuantity(product: ICartProduct): void
+    + decreaseProductQuantity(product: ICartProduct): void
+    + updateCartTotal(products: ICartProduct[]): void
+  }
+
+  class useCartProducts <<Custom Hook>> {
+    + products: ICartProduct[]
+    - updateQuantitySafely(current: ICartProduct, target: ICartProduct, qty: number): ICartProduct
+    + addProduct(newProduct: ICartProduct): void
+    + removeProduct(productToRemove: ICartProduct): void
+    + increaseProductQuantity(productToIncrease: ICartProduct): void
+    + decreaseProductQuantity(productToDecrease: ICartProduct): void
+  }
+
+  class useCartTotal <<Custom Hook>> {
+    + total: ICartTotal
+    + updateCartTotal(products: ICartProduct[]): void
+  }
+
+  class useProducts <<Custom Hook>> {
+    + isFetching: boolean
+    + products: IProduct[]
+    + filters: string[]
+    + fetchProducts(): void
+    + filterProducts(filters: string[]): void
+  }
+
+  CartProvider ..|> ICartContext : реалізує
+  ProductsProvider ..|> IProductsContext : реалізує
+
+  useCart --> useCartProducts : використовує
+  useCart --> useCartTotal : використовує
+  useCartProducts --> useCartTotal : викликає updateCartTotal (Tight Coupling)
+  useCartProducts ..> ICartProduct : оперує
+  useCartTotal ..> ICartTotal : оновлює
+  useProducts ..> IProduct : керує списком
+}
+
+package "Services (Data Layer)" <<Folder>> {
+  class ProductsService <<Service>> {
+    + getProducts(): Promise<IProduct[]>
+  }
+
+  useProducts --> ProductsService : звертається за даними
+  ProductsService ..> IGetProductsResponse : парсить відповідь
+}
+
+package "Components (Presentation Layer)" <<Folder>> {
+  class App <<Component>> {
+    + isFetching: boolean
+    + products: IProduct[]
+    + render(): JSX.Element
+  }
+
+  class Filter <<Component>> {
+    + filters: string[]
+    + toggleCheckbox(label: string): void
+    + render(): JSX.Element
+  }
+
+  class Products <<Component>> {
+    + products: IProduct[]
+    + render(): JSX.Element
+  }
+
+  class Product <<Component>> {
+    + product: IProduct
+    + handleAddProduct(): void
+    + handleAddProductWhenEnter(e: KeyboardEvent): void
+    + render(): JSX.Element
+  }
+
+  class Cart <<Component>> {
+    + isOpen: boolean
+    + total: ICartTotal
+    + handleCheckout(): void
+    + handleToggleCart(isOpen: boolean): void
+    + render(): JSX.Element
+  }
+
+  class CartProducts <<Component>> {
+    + products: ICartProduct[]
+    + render(): JSX.Element
+  }
+
+  class CartProduct <<Component>> {
+    + product: ICartProduct
+    + handleRemoveProduct(): void
+    + handleIncreaseProductQuantity(): void
+    + handleDecreaseProductQuantity(): void
+    + render(): JSX.Element
+  }
+
+  App *-- Filter : містить
+  App *-- Products : містить
+  App *-- Cart : містить
+  Products o-- Product : агрегація (1..*)
+  Cart *-- CartProducts : композиція
+  CartProducts o-- CartProduct : агрегація (0..*)
+
+  App ..> useProducts : викликає fetchProducts
+  Filter ..> useProducts : викликає filterProducts
+  Product ..> useCart : викликає addProduct, openCart
+  Cart ..> useCart : отримує total, products, open/close
+  CartProduct ..> useCart : викликає remove, inc, dec
+}
+
+@enduml
